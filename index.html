@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Movie Night Picker</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      margin: 0;
+      background: #0f0f14;
+      color: #e5e7eb;
+    }
+    header {
+      background: #111827;
+      border-bottom: 3px solid #f59e0b;
+      padding: 1.25rem;
+      text-align: center;
+    }
+    header h1 { margin: 0; font-size: 1.6rem; }
+    header p { margin: 0.25rem 0 0; color: #9ca3af; font-size: 0.9rem; }
+    #message {
+      max-width: 900px;
+      margin: 1rem auto 0;
+      padding: 0.75rem 1rem;
+      border-radius: 6px;
+      display: none;
+    }
+    #message.success { display: block; background: #064e3b; color: #a7f3d0; }
+    #message.error { display: block; background: #7f1d1d; color: #fecaca; }
+    main {
+      max-width: 900px;
+      margin: 1.5rem auto;
+      padding: 0 1rem;
+      display: grid;
+      gap: 1.5rem;
+    }
+    @media (min-width: 760px) {
+      main { grid-template-columns: 1fr 1fr; align-items: start; }
+    }
+    section {
+      background: #1f2937;
+      border-radius: 10px;
+      padding: 1.25rem;
+    }
+    .wide { grid-column: 1 / -1; }
+    h2 { margin-top: 0; font-size: 1.15rem; }
+    label { display: block; font-size: 0.85rem; margin: 0.75rem 0 0.25rem; color: #cbd5e1; }
+    input, select {
+      width: 100%;
+      padding: 0.55rem;
+      border: 1px solid #374151;
+      border-radius: 6px;
+      background: #111827;
+      color: #e5e7eb;
+      font-size: 1rem;
+    }
+    button {
+      cursor: pointer;
+      border: none;
+      border-radius: 6px;
+      padding: 0.5rem 0.85rem;
+      font-size: 0.9rem;
+    }
+    .btn-primary {
+      background: #f59e0b;
+      color: #111827;
+      width: 100%;
+      margin-top: 1rem;
+      padding: 0.7rem;
+      font-size: 1rem;
+      font-weight: 600;
+    }
+    .btn-danger { background: #7f1d1d; color: #fecaca; }
+    .picker {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.5rem;
+    }
+    #result {
+      background: #111827;
+      border-radius: 8px;
+      padding: 1.25rem;
+      margin-top: 1rem;
+      min-height: 120px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      gap: 0.4rem;
+      text-align: center;
+    }
+    .result-label {
+      font-size: 0.8rem;
+      color: #9ca3af;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .result-title { font-size: 1.4rem; font-weight: 700; color: #fbbf24; }
+    .meta { font-size: 0.85rem; color: #9ca3af; }
+    .film {
+      background: #111827;
+      border-radius: 8px;
+      padding: 0.7rem 0.9rem;
+      margin-bottom: 0.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .film h3 { margin: 0; font-size: 0.95rem; }
+    .meta-sm { font-size: 0.8rem; color: #9ca3af; }
+    .empty { color: #9ca3af; text-align: center; padding: 1rem 0; }
+    footer {
+      text-align: center;
+      font-size: 0.8rem;
+      color: #6b7280;
+      padding: 2rem 1rem;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🍿 Movie Night Picker</h1>
+    <p>Can't decide what to watch? Add your films and let the picker choose.</p>
+  </header>
+
+  <div id="message"></div>
+
+  <main>
+    <section>
+      <h2>Add a film</h2>
+      <form id="add-form">
+        <label for="title">Title</label>
+        <input type="text" id="title" required />
+
+        <label for="add-genre">Genre</label>
+        <select id="add-genre"></select>
+
+        <label for="runtime">Runtime (minutes)</label>
+        <input type="number" id="runtime" min="1" max="600" required />
+
+        <button type="submit" class="btn-primary">Add to list</button>
+      </form>
+    </section>
+
+    <section>
+      <h2>Pick tonight's film</h2>
+      <div class="picker">
+        <div>
+          <label for="filter-genre">Genre</label>
+          <select id="filter-genre"></select>
+        </div>
+        <div>
+          <label for="filter-runtime">Max length</label>
+          <select id="filter-runtime">
+            <option value="0">Any length</option>
+            <option value="90">Up to 90 min</option>
+            <option value="120">Up to 2 hours</option>
+            <option value="150">Up to 2.5 hours</option>
+          </select>
+        </div>
+      </div>
+
+      <button type="button" id="pick-btn" class="btn-primary">Pick a movie</button>
+      <div id="result"></div>
+    </section>
+
+    <section class="wide">
+      <h2>Your list</h2>
+      <div id="list"></div>
+    </section>
+  </main>
+
+  <footer>Demo project. Your list is saved only in this browser.</footer>
+
+  <script>
+    const GENRES = [
+      "Action", "Animation", "Comedy", "Documentary", "Drama",
+      "Horror", "Romance", "Sci-Fi", "Thriller", "Other",
+    ];
+    const STORAGE_KEY = "movie-night-picker";
+
+    const $ = (id) => document.getElementById(id);
+    let films = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+    let lastPickId = null;
+
+    function saveFilms() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(films));
+    }
+
+    function showMessage(text, isError = false) {
+      const box = $("message");
+      box.textContent = text;
+      box.className = isError ? "error" : "success";
+    }
+
+    function populateSelects() {
+      GENRES.forEach((g) => $("add-genre").add(new Option(g, g)));
+
+      $("filter-genre").add(new Option("Any genre", "all"));
+      GENRES.forEach((g) => $("filter-genre").add(new Option(g, g)));
+    }
+
+    function addFilm(event) {
+      event.preventDefault();
+      const title = $("title").value.trim();
+      const genre = $("add-genre").value;
+      const runtime = parseInt($("runtime").value, 10);
+
+      if (!title) return showMessage("Please enter a title.", true);
+      if (!runtime || runtime < 1) return showMessage("Please enter a valid runtime.", true);
+
+      const duplicate = films.some(
+        (f) => f.title.toLowerCase() === title.toLowerCase()
+      );
+      if (duplicate) return showMessage("That film is already on your list.", true);
+
+      films.push({ id: Date.now().toString(), title, genre, runtime });
+      saveFilms();
+
+      $("add-form").reset();
+      showMessage(`"${title}" was added to your list.`);
+      renderList();
+    }
+
+    function removeFilm(id) {
+      const film = films.find((f) => f.id === id);
+      if (!film) return;
+      if (!confirm(`Remove "${film.title}" from your list?`)) return;
+
+      films = films.filter((f) => f.id !== id);
+      saveFilms();
+
+      if (lastPickId === id) {
+        lastPickId = null;
+        setResultText("Press the button to pick a film.");
+      }
+      showMessage("Film removed from your list.");
+      renderList();
+    }
+
+    function matchingFilms() {
+      const genre = $("filter-genre").value;
+      const maxRuntime = parseInt($("filter-runtime").value, 10);
+
+      return films.filter(
+        (f) =>
+          (genre === "all" || f.genre === genre) &&
+          (maxRuntime === 0 || f.runtime <= maxRuntime)
+      );
+    }
+
+    function setResultText(text) {
+      const el = document.createElement("div");
+      el.className = "meta";
+      el.textContent = text;
+      $("result").replaceChildren(el);
+    }
+
+    function showResult(film) {
+      const label = document.createElement("div");
+      label.className = "result-label";
+      label.textContent = "Tonight you should watch";
+
+      const title = document.createElement("div");
+      title.className = "result-title";
+      title.textContent = film.title;
+
+      const meta = document.createElement("div");
+      meta.className = "meta";
+      meta.textContent = `${film.genre} · ${film.runtime} min`;
+
+      $("result").replaceChildren(label, title, meta);
+    }
+
+    function pickFilm() {
+      if (films.length === 0) {
+        return setResultText("Add some films to your list first.");
+      }
+
+      const options = matchingFilms();
+      if (options.length === 0) {
+        return setResultText("No films match these filters. Try another genre or length.");
+      }
+
+      // Avoid repeating the last pick when there is more than one option
+      let choices = options.filter((f) => f.id !== lastPickId);
+      if (choices.length === 0) choices = options;
+
+      const chosen = choices[Math.floor(Math.random() * choices.length)];
+      lastPickId = chosen.id;
+      showResult(chosen);
+    }
+
+    function renderList() {
+      const list = $("list");
+      list.replaceChildren();
+
+      if (films.length === 0) {
+        const empty = document.createElement("div");
+        empty.className = "empty";
+        empty.textContent = "Your list is empty. Add a film above.";
+        list.appendChild(empty);
+        return;
+      }
+
+      [...films]
+        .sort((a, b) => a.title.localeCompare(b.title))
+        .forEach((film) => {
+          const row = document.createElement("div");
+          row.className = "film";
+
+          const info = document.createElement("div");
+          const title = document.createElement("h3");
+          title.textContent = film.title;
+          const meta = document.createElement("div");
+          meta.className = "meta-sm";
+          meta.textContent = `${film.genre} · ${film.runtime} min`;
+          info.append(title, meta);
+
+          const removeBtn = document.createElement("button");
+          removeBtn.type = "button";
+          removeBtn.className = "btn-danger";
+          removeBtn.textContent = "Remove";
+          removeBtn.addEventListener("click", () => removeFilm(film.id));
+
+          row.append(info, removeBtn);
+          list.appendChild(row);
+        });
+    }
+
+    function init() {
+      populateSelects();
+      $("add-form").addEventListener("submit", addFilm);
+      $("pick-btn").addEventListener("click", pickFilm);
+      renderList();
+      setResultText("Press the button to pick a film.");
+    }
+
+    init();
+  </script>
+</body>
+</html>
